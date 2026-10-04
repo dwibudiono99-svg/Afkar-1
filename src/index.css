@@ -1,0 +1,122 @@
+@import "tailwindcss";
+
+@layer base {
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+}
+
+/* Standard A4 Paper Size in Screen View */
+.a4-page {
+  width: 210mm;
+  min-height: 297mm;
+  padding: 16mm 18mm 14mm 18mm;
+  margin: 0 auto 24px auto;
+  background: white;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.08);
+  position: relative;
+  box-sizing: border-box;
+  color: #0f172a;
+  font-family: 'Tinos', 'Times New Roman', Times, serif;
+  font-size: 10.5pt;
+  line-height: 1.45;
+  transition: all 0.2s ease-in-out;
+}
+
+/* Double Line for Official Indonesian Kop Surat */
+.kop-border-double {
+  border-bottom: 3.5px double #000000;
+}
+.kop-border-thick-thin {
+  border-bottom: 3px solid #000000;
+  position: relative;
+}
+.kop-border-thick-thin::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: #000000;
+}
+.kop-border-minimal {
+  border-bottom: 2px solid #000000;
+}
+
+/* Content Editable Styling */
+[contenteditable="true"] {
+  outline: none;
+  transition: background-color 0.15s ease, box-shadow 0.15s ease;
+  border-radius: 2px;
+  padding: 0 2px;
+}
+[contenteditable="true"]:hover {
+  background-color: rgba(37, 99, 235, 0.08);
+  cursor: text;
+}
+[contenteditable="true"]:focus {
+  background-color: rgba(37, 99, 235, 0.15);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.35);
+}
+
+/* Printable area overrides */
+@media print {
+  html, body {
+    background: white !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    width: 210mm !important;
+    height: auto !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-area {
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 210mm !important;
+    background: transparent !important;
+  }
+  .a4-page {
+    box-shadow: none !important;
+    margin: 0 !important;
+    width: 210mm !important;
+    min-height: 297mm !important;
+    height: auto !important;
+    padding: 14mm 16mm 14mm 16mm !important;
+    page-break-after: always !important;
+    break-after: page !important;
+  }
+  .a4-page:last-child {
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+  }
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.signature-pad-container {
+  border: 2px dashed #cbd5e1;
+  border-radius: 8px;
+  background: #f8fafc;
+  touch-action: none;
+}

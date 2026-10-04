@@ -1,0 +1,6 @@
+{
+  "name": "Sistem Laporan Resmi, Notulensi & Presensi Digital",
+  "description": "Aplikasi tata naskah dinas, notulensi rapat resmi, matriks action plan, dan lampiran presensi kehadiran dengan tanda tangan digital siap cetak format A4.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
