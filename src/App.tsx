@@ -6,6 +6,8 @@ import { EditorSidebar } from './components/EditorSidebar';
 import { DocumentPreview } from './components/DocumentPreview';
 import { PreviewControls } from './components/PreviewControls';
 import { QuickSignKioskModal } from './components/QuickSignKioskModal';
+import { PrintExportModal } from './components/PrintExportModal';
+import { downloadWordDocument } from './utils/exportWord';
 import { Check } from 'lucide-react';
 
 const STORAGE_KEY = 'official_report_pro_data_v2';
@@ -41,6 +43,9 @@ export default function App() {
   // Kiosk / Tablet Modal state
   const [isKioskOpen, setIsKioskOpen] = useState<boolean>(false);
   const [selectedAttendeeForSign, setSelectedAttendeeForSign] = useState<string | undefined>(undefined);
+
+  // Print & Export Modal state
+  const [isPrintModalOpen, setIsPrintModalOpen] = useState<boolean>(false);
 
   // Auto-save to localStorage
   useEffect(() => {
@@ -194,6 +199,7 @@ export default function App() {
         }}
         onResetState={handleReset}
         lastSavedTime={lastSavedTime}
+        onOpenPrintModal={() => setIsPrintModalOpen(true)}
       />
 
       {/* Main Content Area */}
@@ -225,6 +231,8 @@ export default function App() {
             }
             onApplyPreset={handleApplyPreset}
             activeUnitKerja={state.config.unitKerja}
+            onOpenPrintModal={() => setIsPrintModalOpen(true)}
+            onDownloadWord={() => downloadWordDocument(state)}
           />
 
           {/* Document Preview Pages - key forces clean remount on preset change */}
@@ -241,6 +249,17 @@ export default function App() {
           />
         </main>
       </div>
+
+      {/* Official Print & Export Modal */}
+      <PrintExportModal
+        isOpen={isPrintModalOpen}
+        onClose={() => setIsPrintModalOpen(false)}
+        state={state}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        onToggleQrCode={() => handleUpdateConfig('showQrCode', !state.config.showQrCode)}
+        onUpdateConfig={handleUpdateConfig}
+      />
 
       {/* Tablet Kiosk / Quick Digital Sign Modal */}
       <QuickSignKioskModal

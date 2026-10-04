@@ -1,5 +1,5 @@
 import React from 'react';
-import { ZoomIn, ZoomOut, Eye, Edit3, QrCode, Sparkles } from 'lucide-react';
+import { ZoomIn, ZoomOut, Eye, Edit3, QrCode, Sparkles, Printer, FileDown } from 'lucide-react';
 
 interface PreviewControlsProps {
   zoom: number;
@@ -10,6 +10,8 @@ interface PreviewControlsProps {
   onToggleQrCode: () => void;
   onApplyPreset?: (presetKey: string) => void;
   activeUnitKerja?: string;
+  onOpenPrintModal?: () => void;
+  onDownloadWord?: () => void;
 }
 
 export const PreviewControls: React.FC<PreviewControlsProps> = ({
@@ -21,6 +23,8 @@ export const PreviewControls: React.FC<PreviewControlsProps> = ({
   onToggleQrCode,
   onApplyPreset,
   activeUnitKerja = '',
+  onOpenPrintModal,
+  onDownloadWord,
 }) => {
   const isPemerintahan = activeUnitKerja.toLowerCase().includes('dinas');
   const isKorporat = activeUnitKerja.toLowerCase().includes('divisi') || activeUnitKerja.toLowerCase().includes('persero');
@@ -165,8 +169,8 @@ export const PreviewControls: React.FC<PreviewControlsProps> = ({
 
         <div className="h-4 w-px bg-slate-700 hidden md:block"></div>
 
-        {/* QR Code toggle & WYSIWYG note */}
-        <div className="flex items-center gap-3">
+        {/* QR Code toggle, Word & Print buttons */}
+        <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={onToggleQrCode}
@@ -181,10 +185,29 @@ export const PreviewControls: React.FC<PreviewControlsProps> = ({
             <span className="hidden lg:inline">Segel QR</span>
           </button>
 
-          <span className="text-slate-400 text-[11px] hidden xl:flex items-center gap-1">
-            <Edit3 className="w-3.5 h-3.5 text-amber-400" />
-            <span>Klik teks di kertas untuk edit</span>
-          </span>
+          {onDownloadWord && (
+            <button
+              type="button"
+              onClick={onDownloadWord}
+              className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[11px] text-blue-300 hover:text-white transition cursor-pointer"
+              title="Unduh versi Word (.doc)"
+            >
+              <FileDown className="w-3 h-3" />
+              <span className="hidden sm:inline">Word</span>
+            </button>
+          )}
+
+          {onOpenPrintModal && (
+            <button
+              type="button"
+              onClick={onOpenPrintModal}
+              className="flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-semibold transition cursor-pointer shadow-xs"
+              title="Buka Menu Cetak & Unduh Resmi"
+            >
+              <Printer className="w-3 h-3" />
+              <span>Cetak / PDF</span>
+            </button>
+          )}
         </div>
       </div>
     </div>

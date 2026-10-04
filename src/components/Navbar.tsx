@@ -10,14 +10,17 @@ import {
   HelpCircle,
   X,
   Share2,
+  SlidersHorizontal,
 } from 'lucide-react';
 import { AppState } from '../types';
+import { downloadWordDocument } from '../utils/exportWord';
 
 interface NavbarProps {
   state: AppState;
   onImportState: (newState: AppState) => void;
   onResetState: () => void;
   lastSavedTime: Date | null;
+  onOpenPrintModal?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -25,8 +28,10 @@ export const Navbar: React.FC<NavbarProps> = ({
   onImportState,
   onResetState,
   lastSavedTime,
+  onOpenPrintModal,
 }) => {
   const [showHelpModal, setShowHelpModal] = useState(false);
+  const [importNotification, setImportNotification] = useState<string>('');
 
   const handleExportJSON = () => {
     const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(state, null, 2));
@@ -49,12 +54,15 @@ export const Navbar: React.FC<NavbarProps> = ({
         const parsed = JSON.parse(event.target?.result as string);
         if (parsed.config && parsed.notulensi) {
           onImportState(parsed);
-          alert('Data laporan dan presensi berhasil dimuat!');
+          setImportNotification('✓ Berkas data laporan berhasil dimuat!');
+          setTimeout(() => setImportNotification(''), 3000);
         } else {
-          alert('Format berkas JSON tidak sesuai struktur aplikasi.');
+          setImportNotification('⚠️ Format berkas JSON tidak sesuai struktur aplikasi.');
+          setTimeout(() => setImportNotification(''), 4000);
         }
       } catch (err) {
-        alert('Gagal membaca berkas JSON.');
+        setImportNotification('⚠️ Gagal membaca berkas JSON.');
+        setTimeout(() => setImportNotification(''), 4000);
       }
     };
     reader.readAsText(file);
@@ -62,139 +70,20 @@ export const Navbar: React.FC<NavbarProps> = ({
   };
 
   const handleExportWord = () => {
-    // Generate Microsoft Word compatible HTML document
-    const content = `
-      <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
-      <head>
-        <meta charset='utf-8'>
-        <title>${state.config.judulRapat}</title>
-        <style>
-          body { font-family: 'Times New Roman', serif; font-size: 11pt; line-height: 1.4; color: #000; }
-          h1, h2, h3, h4 { margin: 0; padding: 0; }
-          .kop-table { width: 100%; border-bottom: 3px double #000; margin-bottom: 20px; }
-          table { width: 100%; border-collapse: collapse; margin: 15px 0; }
-          th, td { border: 1px solid #000; padding: 6px 8px; font-size: 10pt; }
-          th { background-color: #f2f2f2; text-align: left; }
-          .no-border td { border: none; padding: 3px 5px; }
-          .text-center { text-align: center; }
-          .font-bold { font-weight: bold; }
-        </style>
-      </head>
-      <body>
-        <div style="text-align: center; border-bottom: 3px double #000; padding-bottom: 12px; margin-bottom: 20px;">
-          <h3 style="font-size: 12pt; text-transform: uppercase;">${state.config.instansiAtasan}</h3>
-          <h1 style="font-size: 16pt; text-transform: uppercase; color: #1e3a8a;">${state.config.unitKerja}</h1>
-          <p style="font-size: 9pt; margin: 4px 0;">${state.config.alamat}</p>
-          <p style="font-size: 8.5pt; margin: 0;">${state.config.kontak} | ${state.config.website}</p>
-        </div>
-
-        <div style="text-align: center; margin-bottom: 20px;">
-          <h2 style="font-size: 13pt; text-transform: uppercase; text-decoration: underline;">LAPORAN PELAKSANAAN & NOTULENSI RAPAT</h2>
-          <p style="font-size: 10pt; margin: 4px 0;">Nomor: ${state.config.noSurat}</p>
-        </div>
-
-        <table class="no-border" style="width: 100%; margin-bottom: 15px;">
-          <tr><td style="width: 20%; font-weight: bold;">Agenda Rapat</td><td style="width: 2%;">:</td><td>${state.config.judulRapat}</td></tr>
-          <tr><td style="font-weight: bold;">Hari / Tanggal</td><td>:</td><td>${state.config.hariTanggal}</td></tr>
-          <tr><td style="font-weight: bold;">Waktu</td><td>:</td><td>${state.config.waktu}</td></tr>
-          <tr><td style="font-weight: bold;">Tempat</td><td>:</td><td>${state.config.tempat}</td></tr>
-          <tr><td style="font-weight: bold;">Kehadiran</td><td>:</td><td>${state.attendees.length} Orang Terdaftar</td></tr>
-        </table>
-
-        <h4 style="border-bottom: 1px solid #1e3a8a; color: #1e3a8a; text-transform: uppercase; margin-top: 15px;">I. Pendahuluan & Latar Belakang</h4>
-        <p style="text-align: justify; text-indent: 30px;">${state.config.pendahuluan}</p>
-
-        <h4 style="border-bottom: 1px solid #1e3a8a; color: #1e3a8a; text-transform: uppercase; margin-top: 15px;">II. Notulensi Jalannya Rapat</h4>
-        <ol>
-          ${state.notulensi.map((n) => `<li><strong>${n.pembicara} (${n.topik}):</strong> ${n.poin}</li>`).join('')}
-        </ol>
-
-        <h4 style="border-bottom: 1px solid #1e3a8a; color: #1e3a8a; text-transform: uppercase; margin-top: 15px;">III. Kesimpulan Utama</h4>
-        <ul>
-          ${state.kesimpulan.map((k) => `<li><strong>${k.kategori || 'Kesimpulan'}:</strong> ${k.text}</li>`).join('')}
-        </ul>
-
-        <h4 style="border-bottom: 1px solid #1e3a8a; color: #1e3a8a; text-transform: uppercase; margin-top: 25px;">IV. Matriks Rencana Tindak Lanjut</h4>
-        <table>
-          <tr>
-            <th style="width: 5%; text-align: center;">No</th>
-            <th>Uraian Tugas / Rencana Kerja</th>
-            <th style="width: 25%;">Penanggung Jawab (PIC)</th>
-            <th style="width: 15%; text-align: center;">Batas Waktu</th>
-            <th style="width: 12%; text-align: center;">Status</th>
-          </tr>
-          ${state.actionPlan
-            .map(
-              (a, idx) => `
-            <tr>
-              <td style="text-align: center;">${idx + 1}</td>
-              <td>${a.task}</td>
-              <td>${a.pic}</td>
-              <td style="text-align: center;">${a.deadline}</td>
-              <td style="text-align: center;">${a.status}</td>
-            </tr>
-          `
-            )
-            .join('')}
-        </table>
-
-        <div style="background-color: #fef3c7; border: 1px solid #f59e0b; padding: 10px; margin: 15px 0;">
-          <h4 style="margin: 0 0 5px 0; color: #78350f; font-size: 10pt; text-transform: uppercase;">
-            ${state.config.judulKetentuanTindakLanjut || 'Ketentuan Pelaporan & Monitoring Tindak Lanjut:'}
-          </h4>
-          <ol style="margin: 0; padding-left: 20px; font-size: 9.5pt; color: #451a03;">
-            ${(
-              state.config.ketentuanTindakLanjut || [
-                'Setiap PIC wajib mengunggah bukti dukung (evidence) pelaksanaan tugas pada dashboard sistem evaluasi.',
-                'Monitoring progres dilakukan secara berkala tiap hari Jumat pada akhir pekan berjalan.',
-                'Kendala teknis atau pergeseran target harus dilaporkan segera kepada pimpinan rapat untuk alternatif penyesuaian.',
-              ]
-            )
-              .map((rule) => `<li>${rule}</li>`)
-              .join('')}
-          </ol>
-        </div>
-
-        <br><br>
-        <table class="no-border" style="width: 100%; text-align: center;">
-          <tr>
-            <td style="width: 50%;">
-              <p>Notulis Rapat,</p>
-              <br><br><br>
-              <p><strong><u>${state.config.namaNotulis}</u></strong></p>
-              <p style="font-size: 9pt;">${state.config.nipNotulis}</p>
-            </td>
-            <td style="width: 50%;">
-              <p>${state.config.kota}, ${state.config.tanggalCetak || state.config.hariTanggal}</p>
-              <p>Pimpinan Rapat,</p>
-              <br><br><br>
-              <p><strong><u>${state.config.namaPimpinan}</u></strong></p>
-              <p style="font-size: 9pt;">${state.config.nipPimpinan}</p>
-            </td>
-          </tr>
-        </table>
-      </body>
-      </html>
-    `;
-
-    const blob = new Blob(['\ufeff', content], {
-      type: 'application/msword',
-    });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `Laporan_Rapat_${state.config.kota}_${Date.now()}.doc`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    downloadWordDocument(state);
   };
 
   const handlePrint = () => {
-    window.print();
+    if (onOpenPrintModal) {
+      onOpenPrintModal();
+    } else {
+      window.print();
+    }
   };
 
   return (
     <>
-      <header className="no-print bg-slate-900 text-white border-b border-slate-800 sticky top-0 z-40 px-4 py-2.5 shadow-md">
+      <header className="no-print bg-slate-900 text-white border-b border-slate-800 sticky top-0 z-40 px-3 sm:px-4 py-2.5 shadow-md">
         <div className="max-w-[1700px] mx-auto flex flex-col md:flex-row items-center justify-between gap-3">
           {/* Logo & Title */}
           <div className="flex items-center gap-3">
@@ -203,24 +92,31 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="font-bold text-base leading-tight text-white">
+                <h1 className="font-bold text-sm sm:text-base leading-tight text-white">
                   Sistem Laporan Resmi & Presensi Digital
                 </h1>
-                <span className="text-[10px] font-semibold bg-blue-900 text-blue-200 px-2 py-0.5 rounded-full border border-blue-700">
-                  WYSIWYG Pro A4
+                <span className="text-[10px] font-semibold bg-blue-900 text-blue-200 px-2 py-0.5 rounded-full border border-blue-700 hidden sm:inline">
+                  Tata Naskah Baku A4
                 </span>
               </div>
-              <p className="text-xs text-slate-400">
-                Tata Naskah Dinas, Notulensi Rapat & Absensi TTD Digital Siap Cetak
+              <p className="text-[11px] text-slate-400">
+                Notulensi Rapat, Matriks Tindak Lanjut & Absensi TTD Digital
               </p>
             </div>
           </div>
 
           {/* Action Buttons */}
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap justify-end">
+            {/* Notification alert */}
+            {importNotification && (
+              <span className="text-xs bg-emerald-950 text-emerald-300 border border-emerald-700 px-2.5 py-1 rounded-lg font-medium">
+                {importNotification}
+              </span>
+            )}
+
             {/* Auto-save status */}
             <span
-              className="text-xs text-slate-400 flex items-center gap-1 mr-1 hidden sm:flex"
+              className="text-xs text-slate-400 flex items-center gap-1 mr-1 hidden xl:flex"
               title={lastSavedTime ? `Terakhir tersimpan: ${lastSavedTime.toLocaleTimeString()}` : ''}
             >
               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
@@ -231,42 +127,42 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               type="button"
               onClick={() => setShowHelpModal(true)}
-              className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium rounded-lg border border-slate-700 transition flex items-center gap-1"
+              className="p-1.5 sm:px-2.5 sm:py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium rounded-lg border border-slate-700 transition flex items-center gap-1 cursor-pointer"
               title="Panduan Cetak PDF"
             >
               <HelpCircle className="w-3.5 h-3.5 text-blue-400" />
-              <span className="hidden lg:inline">Panduan Cetak</span>
+              <span className="hidden lg:inline">Panduan</span>
             </button>
 
-            {/* Export Word */}
+            {/* Direct Export Word */}
             <button
               type="button"
               onClick={handleExportWord}
-              className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium rounded-lg border border-slate-700 transition flex items-center gap-1"
-              title="Unduh sebagai dokumen Microsoft Word (.doc)"
+              className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium rounded-lg border border-slate-700 transition flex items-center gap-1.5 cursor-pointer shadow-xs hover:text-white"
+              title="Unduh langsung dokumen Microsoft Word (.doc)"
             >
               <FileDown className="w-3.5 h-3.5 text-blue-400" />
-              <span className="hidden sm:inline">Word (.doc)</span>
+              <span className="font-semibold text-blue-200">Word (.doc)</span>
             </button>
 
             {/* Export JSON */}
             <button
               type="button"
               onClick={handleExportJSON}
-              className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium rounded-lg border border-slate-700 transition flex items-center gap-1"
+              className="px-2 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium rounded-lg border border-slate-700 transition flex items-center gap-1 cursor-pointer hidden md:flex"
               title="Simpan file cadangan .json"
             >
               <Download className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Ekspor JSON</span>
+              <span className="hidden xl:inline">Backup JSON</span>
             </button>
 
             {/* Import JSON */}
             <label
-              className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium rounded-lg border border-slate-700 transition flex items-center gap-1 cursor-pointer"
+              className="px-2 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium rounded-lg border border-slate-700 transition flex items-center gap-1 cursor-pointer hidden md:flex"
               title="Muat file cadangan .json"
             >
               <Upload className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Impor</span>
+              <span className="hidden xl:inline">Pulihkan</span>
               <input
                 type="file"
                 accept=".json"
@@ -279,21 +175,25 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               type="button"
               onClick={onResetState}
-              className="px-2.5 py-1.5 bg-rose-950/60 hover:bg-rose-900 text-rose-300 text-xs font-medium rounded-lg border border-rose-800/70 transition flex items-center gap-1"
+              className="px-2 py-1.5 bg-rose-950/60 hover:bg-rose-900 text-rose-300 text-xs font-medium rounded-lg border border-rose-800/70 transition flex items-center gap-1 cursor-pointer"
               title="Reset seluruh data ke setelan bawaan"
             >
               <RotateCcw className="w-3.5 h-3.5" />
-              <span className="hidden md:inline">Reset</span>
+              <span className="hidden lg:inline">Reset</span>
             </button>
 
-            {/* Cetak PDF button */}
+            {/* Dedicated Menu Cetak & Unduh Resmi button */}
             <button
               type="button"
               onClick={handlePrint}
-              className="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg shadow-sm transition flex items-center gap-1.5 ml-1"
+              className="px-3.5 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-bold rounded-lg shadow-md transition flex items-center gap-1.5 cursor-pointer ring-1 ring-blue-300/40"
+              title="Buka Menu Cetak & Unduh Resmi (Pilihan Word & PDF)"
             >
               <Printer className="w-4 h-4" />
-              <span>Cetak / Simpan PDF</span>
+              <span>Menu Cetak & Unduh</span>
+              <span className="bg-white/20 text-white text-[10px] px-1.5 py-0.2 rounded font-normal hidden sm:inline">
+                Word / PDF
+              </span>
             </button>
           </div>
         </div>
