@@ -40,6 +40,10 @@ export interface ReportConfig {
   pendahuluan: string;
   dasarPelaksanaan: string;
 
+  // Ketentuan Pelaporan & Monitoring Tindak Lanjut
+  judulKetentuanTindakLanjut?: string;
+  ketentuanTindakLanjut?: string[];
+
   // Style Settings
   fontFamily: 'serif' | 'sans';
   showQrCode: boolean;

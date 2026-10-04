@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { AppState, ActionStatus, ActionPriority, AttendeeItem } from '../types';
 import { SignatureCanvas } from './SignatureCanvas';
-import { presetTemplates } from '../data/presets';
+import { presetTemplates, defaultState } from '../data/presets';
 
 interface EditorSidebarProps {
   state: AppState;
@@ -25,6 +25,7 @@ interface EditorSidebarProps {
   onUpdateConfig: (key: keyof AppState['config'], value: any) => void;
   onOpenKiosk: () => void;
   onOpenQuickSignAttendee: (attendeeId: string) => void;
+  onApplyPreset?: (presetKey: string) => void;
 }
 
 export const EditorSidebar: React.FC<EditorSidebarProps> = ({
@@ -33,6 +34,7 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
   onUpdateConfig,
   onOpenKiosk,
   onOpenQuickSignAttendee,
+  onApplyPreset,
 }) => {
   const [activeTab, setActiveTab] = useState<
     'presensi' | 'kop' | 'agenda' | 'notulensi' | 'action_plan' | 'presets'
@@ -79,21 +81,17 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
   };
 
   const handleRemoveAttendee = (id: string) => {
-    if (confirm('Hapus peserta ini dari daftar presensi?')) {
-      onUpdateState({
-        ...state,
-        attendees: state.attendees.filter((a) => a.id !== id),
-      });
-    }
+    onUpdateState({
+      ...state,
+      attendees: state.attendees.filter((a) => a.id !== id),
+    });
   };
 
   const handleClearAllAttendees = () => {
-    if (confirm('Apakah Anda yakin ingin mengosongkan seluruh daftar peserta?')) {
-      onUpdateState({
-        ...state,
-        attendees: [],
-      });
-    }
+    onUpdateState({
+      ...state,
+      attendees: [],
+    });
   };
 
   const exportAttendeesCSV = () => {
@@ -202,20 +200,104 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
     });
   };
 
+  // Ketentuan Tindak Lanjut Handlers
+  const handleAddKetentuan = () => {
+    const current = state.config.ketentuanTindakLanjut || [
+      'Setiap PIC wajib mengunggah bukti dukung (evidence) pelaksanaan tugas pada dashboard sistem evaluasi.',
+      'Monitoring progres dilakukan secara berkala tiap hari Jumat pada akhir pekan berjalan.',
+      'Kendala teknis atau pergeseran target harus dilaporkan segera kepada pimpinan rapat untuk alternatif penyesuaian.',
+    ];
+    onUpdateConfig('ketentuanTindakLanjut', [...current, 'Poin ketentuan pelaporan baru...']);
+  };
+
+  const handleUpdateKetentuan = (index: number, text: string) => {
+    const current = [
+      ...(state.config.ketentuanTindakLanjut || [
+        'Setiap PIC wajib mengunggah bukti dukung (evidence) pelaksanaan tugas pada dashboard sistem evaluasi.',
+        'Monitoring progres dilakukan secara berkala tiap hari Jumat pada akhir pekan berjalan.',
+        'Kendala teknis atau pergeseran target harus dilaporkan segera kepada pimpinan rapat untuk alternatif penyesuaian.',
+      ]),
+    ];
+    current[index] = text;
+    onUpdateConfig('ketentuanTindakLanjut', current);
+  };
+
+  const handleRemoveKetentuan = (index: number) => {
+    const current = [
+      ...(state.config.ketentuanTindakLanjut || [
+        'Setiap PIC wajib mengunggah bukti dukung (evidence) pelaksanaan tugas pada dashboard sistem evaluasi.',
+        'Monitoring progres dilakukan secara berkala tiap hari Jumat pada akhir pekan berjalan.',
+        'Kendala teknis atau pergeseran target harus dilaporkan segera kepada pimpinan rapat untuk alternatif penyesuaian.',
+      ]),
+    ];
+    current.splice(index, 1);
+    onUpdateConfig('ketentuanTindakLanjut', current);
+  };
+
+  const handleApplyKetentuanPreset = (presetKey: string) => {
+    if (presetKey === 'spbe') {
+      onUpdateConfig('judulKetentuanTindakLanjut', 'Ketentuan Pelaporan & Monitoring Tindak Lanjut SPBE:');
+      onUpdateConfig('ketentuanTindakLanjut', [
+        'Setiap PIC wajib mengunggah bukti dukung (evidence) dan arsitektur data pada portal SPBE daerah.',
+        'Pengujian keamanan sistem (VAPT) dan penanganan insiden dikoordinasikan bersama tim CSIRT sebelum peluncuran.',
+        'Evaluasi berkala progres integrasi API dilakukan tiap hari Jumat bersama tim arsitektur TI.',
+      ]);
+    } else if (presetKey === 'anggaran') {
+      onUpdateConfig('judulKetentuanTindakLanjut', 'Ketentuan Pertanggungjawaban & Realisasi Anggaran:');
+      onUpdateConfig('ketentuanTindakLanjut', [
+        'Seluruh berkas Surat Pertanggungjawaban (SPJ) dan kuitansi sah diserahkan ke Bendahara Pengeluaran maksimal 5 hari kerja setelah kegiatan.',
+        'Realisasi fisik dan keuangan wajib diinput ke dalam aplikasi SIPD/e-Monev sebelum penutupan kas bulanan.',
+        'Setiap deviasi atau pergeseran anggaran di atas 5% wajib mendapat persetujuan tertulis Pejabat Pembuat Komitmen (PPK).',
+      ]);
+    } else if (presetKey === 'proyek') {
+      onUpdateConfig('judulKetentuanTindakLanjut', 'Ketentuan Pengawasan Pekerjaan & Serah Terima Proyek:');
+      onUpdateConfig('ketentuanTindakLanjut', [
+        'Konsultan Pengawas dan Kontraktor Pelaksana wajib menyusun laporan harian dan mingguan disertai foto progres 0%, 50%, dan 100%.',
+        'Uji mutu material dan pengujian fungsi (commissioning test) disaksikan bersama Pengawas Lapangan.',
+        'Permohonan Serah Terima Pertama Pekerjaan (PHO) diajukan selambat-lambatnya 14 hari kalender sebelum masa kontrak berakhir.',
+      ]);
+    } else if (presetKey === 'akademik') {
+      onUpdateConfig('judulKetentuanTindakLanjut', 'Ketentuan Penyelesaian Dokumen Kurikulum & Mutu Akademik:');
+      onUpdateConfig('ketentuanTindakLanjut', [
+        'Draf Rencana Pembelajaran Semester (RPS) dan modul ajar wajib diunggah ke repositori sistem kurikulum fakultas.',
+        'Gugus Penjaminan Mutu (GPM) bertugas memvalidasi keselarasan Capaian Pembelajaran Lulusan (CPL) dengan standar akreditasi.',
+        'Laporan rekapitulasi evaluasi akademik diserahkan secara tertulis kepada Dekan pada akhir bulan berjalan.',
+      ]);
+    } else if (presetKey === 'rtrw') {
+      onUpdateConfig('judulKetentuanTindakLanjut', 'Ketentuan Partisipasi & Pelaporan Tindak Lanjut Warga RT/RW:');
+      onUpdateConfig('ketentuanTindakLanjut', [
+        'Setiap Kepala Keluarga (KK) dimohon mengutus minimal 1 (satu) orang perwakilan anggota keluarga untuk kegiatan kerja bakti lingkungan.',
+        'Warga yang memiliki kendala atau berhalangan hadir dapat menyampaikan konfirmasi kepada Ketua RT atau grup WhatsApp resmi warga.',
+        'Laporan pertanggungjawaban kas iuran K3 (keamanan dan kebersihan) dipublikasikan secara terbuka pada papan pengumuman balai warga dan grup WhatsApp setiap tanggal 5 awal bulan.',
+      ]);
+    } else if (presetKey === 'umum') {
+      onUpdateConfig('judulKetentuanTindakLanjut', 'Ketentuan Pelaporan & Monitoring Tindak Lanjut:');
+      onUpdateConfig('ketentuanTindakLanjut', [
+        'Setiap PIC wajib menyampaikan laporan progres tertulis secara berkala kepada sekretariat rapat.',
+        'Monitoring dan evaluasi bersama diagendakan setiap akhir pekan berjalan.',
+        'Hambatan operasional atau kebutuhan koordinasi lintas instansi segera dilaporkan kepada pimpinan.',
+      ]);
+    }
+  };
+
   // Preset Template Loader
   const handleLoadPreset = (presetKey: string) => {
-    const template = presetTemplates[presetKey];
-    if (!template) return;
-    if (confirm(`Terapkan template "${template.label}"? Perubahan teks yang belum disimpan akan digantikan template.`)) {
-      onUpdateState({
-        ...state,
-        ...template.data,
-        config: {
-          ...state.config,
-          ...template.data.config,
-        },
-      });
+    if (onApplyPreset) {
+      onApplyPreset(presetKey);
+      return;
     }
+    const template = presetTemplates[presetKey];
+    if (!template || !template.data) return;
+    onUpdateState({
+      config: {
+        ...defaultState.config,
+        ...(template.data.config || {}),
+      },
+      notulensi: [...(template.data.notulensi || defaultState.notulensi)],
+      kesimpulan: [...(template.data.kesimpulan || defaultState.kesimpulan)],
+      actionPlan: [...(template.data.actionPlan || defaultState.actionPlan)],
+      attendees: [...(template.data.attendees || defaultState.attendees)],
+    });
   };
 
   const filteredAttendees = state.attendees.filter(
@@ -1290,6 +1372,130 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
                 </div>
               ))}
             </div>
+
+            {/* SEKSI EDIT KETENTUAN PELAPORAN TINDAK LANJUT */}
+            <div className="bg-amber-50/70 p-3.5 rounded-xl border border-amber-300 space-y-3 mt-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <label className="text-xs font-bold uppercase tracking-wider text-amber-950 block">
+                    Ketentuan Pelaporan Tindak Lanjut
+                  </label>
+                  <span className="text-[11px] text-amber-800">
+                    Disesuaikan dengan topik & hasil rapat
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleAddKetentuan}
+                  className="px-2 py-1 bg-amber-700 hover:bg-amber-800 text-white text-[11px] font-semibold rounded flex items-center gap-1 transition shadow-xs"
+                >
+                  <Plus className="w-3 h-3" /> Tambah Poin
+                </button>
+              </div>
+
+              {/* Preset Topik Cepat */}
+              <div>
+                <label className="block text-[10.5px] font-semibold text-amber-900 mb-1">
+                  Pilih Preset Sesuai Topik Rapat:
+                </label>
+                <div className="flex flex-wrap gap-1">
+                  <button
+                    type="button"
+                    onClick={() => handleApplyKetentuanPreset('spbe')}
+                    className="px-2 py-0.5 bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 rounded text-[10px] font-medium transition"
+                  >
+                    💻 SPBE / IT
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleApplyKetentuanPreset('anggaran')}
+                    className="px-2 py-0.5 bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 rounded text-[10px] font-medium transition"
+                  >
+                    💰 Anggaran / SPJ
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleApplyKetentuanPreset('proyek')}
+                    className="px-2 py-0.5 bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 rounded text-[10px] font-medium transition"
+                  >
+                    🏗️ Proyek / Fisik
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleApplyKetentuanPreset('akademik')}
+                    className="px-2 py-0.5 bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 rounded text-[10px] font-medium transition"
+                  >
+                    🎓 Akademik / Prodi
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleApplyKetentuanPreset('rtrw')}
+                    className="px-2 py-0.5 bg-white hover:bg-emerald-100 text-emerald-900 border border-emerald-300 rounded text-[10px] font-medium transition"
+                  >
+                    🏡 Warga RT / RW
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleApplyKetentuanPreset('umum')}
+                    className="px-2 py-0.5 bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 rounded text-[10px] font-medium transition"
+                  >
+                    📋 Umum / Dinas
+                  </button>
+                </div>
+              </div>
+
+              {/* Judul Ketentuan */}
+              <div>
+                <label className="block text-[11px] font-medium text-amber-950 mb-1">
+                  Judul Ketentuan / Header:
+                </label>
+                <input
+                  type="text"
+                  value={
+                    state.config.judulKetentuanTindakLanjut ||
+                    'Ketentuan Pelaporan & Monitoring Tindak Lanjut:'
+                  }
+                  onChange={(e) =>
+                    onUpdateConfig('judulKetentuanTindakLanjut', e.target.value)
+                  }
+                  className="w-full px-2.5 py-1 text-xs border border-amber-300 rounded bg-white text-amber-950 font-bold outline-none focus:ring-1 focus:ring-amber-500"
+                />
+              </div>
+
+              {/* List Poin Ketentuan */}
+              <div className="space-y-2">
+                {(
+                  state.config.ketentuanTindakLanjut || [
+                    'Setiap PIC wajib mengunggah bukti dukung (evidence) pelaksanaan tugas pada dashboard sistem evaluasi.',
+                    'Monitoring progres dilakukan secara berkala tiap hari Jumat pada akhir pekan berjalan.',
+                    'Kendala teknis atau pergeseran target harus dilaporkan segera kepada pimpinan rapat untuk alternatif penyesuaian.',
+                  ]
+                ).map((rule, rIdx) => (
+                  <div
+                    key={rIdx}
+                    className="flex items-start gap-1.5 bg-white p-1.5 rounded-lg border border-amber-200"
+                  >
+                    <span className="text-[11px] font-bold text-amber-800 mt-1 min-w-4 text-center">
+                      {rIdx + 1}.
+                    </span>
+                    <textarea
+                      rows={2}
+                      value={rule}
+                      onChange={(e) => handleUpdateKetentuan(rIdx, e.target.value)}
+                      className="flex-1 text-xs p-1 border border-slate-200 rounded outline-none focus:border-amber-500 resize-none text-slate-800"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveKetentuan(rIdx)}
+                      className="text-slate-400 hover:text-rose-600 p-1 mt-1 transition"
+                      title="Hapus poin ketentuan"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         )}
 
@@ -1303,24 +1509,52 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
             </div>
 
             <div className="space-y-2.5">
-              {Object.entries(presetTemplates).map(([key, template]) => (
-                <div
-                  key={key}
-                  className="p-3.5 bg-white border border-slate-200 hover:border-blue-400 rounded-xl space-y-2 transition shadow-xs"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-xs text-slate-900">{template.label}</span>
-                    <button
-                      type="button"
-                      onClick={() => handleLoadPreset(key)}
-                      className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-semibold rounded transition"
-                    >
-                      Gunakan Template
-                    </button>
+              {Object.entries(presetTemplates).map(([key, template]) => {
+                const isActive =
+                  (key === 'pemerintahan' && state.config.unitKerja.toLowerCase().includes('dinas')) ||
+                  (key === 'korporat' && (state.config.unitKerja.toLowerCase().includes('divisi') || state.config.unitKerja.toLowerCase().includes('persero'))) ||
+                  (key === 'akademik' && (state.config.unitKerja.toLowerCase().includes('universitas') || state.config.unitKerja.toLowerCase().includes('fakultas'))) ||
+                  (key === 'komunitas' && (state.config.unitKerja.toLowerCase().includes('pengurus cabang') || state.config.unitKerja.toLowerCase().includes('forum'))) ||
+                  (key === 'rtrw' && (state.config.unitKerja.toLowerCase().includes('rukun tetangga') || state.config.unitKerja.toLowerCase().includes('rt 04')));
+
+                return (
+                  <div
+                    key={key}
+                    onClick={() => handleLoadPreset(key)}
+                    className={`p-3.5 rounded-xl space-y-2 transition shadow-xs cursor-pointer border ${
+                      isActive
+                        ? 'bg-blue-50/70 border-blue-500 ring-2 ring-blue-300'
+                        : 'bg-white border-slate-200 hover:border-blue-400 hover:bg-slate-50/60'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-xs text-slate-900">{template.label}</span>
+                        {isActive && (
+                          <span className="px-2 py-0.5 bg-blue-600 text-white text-[10px] font-bold rounded-full flex items-center gap-0.5">
+                            ✓ Aktif
+                          </span>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleLoadPreset(key);
+                        }}
+                        className={`px-3 py-1 text-[11px] font-semibold rounded-lg transition shadow-xs cursor-pointer ${
+                          isActive
+                            ? 'bg-blue-700 text-white'
+                            : 'bg-blue-600 hover:bg-blue-700 text-white'
+                        }`}
+                      >
+                        {isActive ? 'Aktif Digunakan' : 'Gunakan Template'}
+                      </button>
+                    </div>
+                    <p className="text-xs text-slate-600 leading-snug">{template.description}</p>
                   </div>
-                  <p className="text-xs text-slate-600 leading-snug">{template.description}</p>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}

@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { AppState } from './types';
-import { defaultState } from './data/presets';
+import { defaultState, presetTemplates } from './data/presets';
 import { Navbar } from './components/Navbar';
 import { EditorSidebar } from './components/EditorSidebar';
 import { DocumentPreview } from './components/DocumentPreview';
 import { PreviewControls } from './components/PreviewControls';
 import { QuickSignKioskModal } from './components/QuickSignKioskModal';
+import { Check } from 'lucide-react';
 
 const STORAGE_KEY = 'official_report_pro_data_v2';
 
@@ -31,6 +32,8 @@ export default function App() {
     return defaultState;
   });
 
+  const [documentRevision, setDocumentRevision] = useState<number>(0);
+  const [toastMessage, setToastMessage] = useState<string>('');
   const [lastSavedTime, setLastSavedTime] = useState<Date | null>(new Date());
   const [zoom, setZoom] = useState<number>(88);
   const [viewMode, setViewMode] = useState<'all' | 'laporan' | 'action_plan' | 'presensi'>('all');
@@ -48,6 +51,27 @@ export default function App() {
       console.error('LocalStorage save failed', e);
     }
   }, [state]);
+
+  const handleApplyPreset = (presetKey: string) => {
+    const template = presetTemplates[presetKey];
+    if (!template || !template.data) return;
+
+    const newState: AppState = {
+      config: {
+        ...defaultState.config,
+        ...(template.data.config || {}),
+      },
+      notulensi: [...(template.data.notulensi || defaultState.notulensi)],
+      kesimpulan: [...(template.data.kesimpulan || defaultState.kesimpulan)],
+      actionPlan: [...(template.data.actionPlan || defaultState.actionPlan)],
+      attendees: [...(template.data.attendees || defaultState.attendees)],
+    };
+
+    setState(newState);
+    setDocumentRevision((r) => r + 1);
+    setToastMessage(`✓ Template "${template.label}" berhasil diterapkan ke seluruh dokumen!`);
+    setTimeout(() => setToastMessage(''), 3500);
+  };
 
   const handleUpdateConfig = (key: keyof AppState['config'], value: any) => {
     setState((prev) => ({
@@ -76,6 +100,26 @@ export default function App() {
         updated[index] = { ...updated[index], text };
       }
       return { ...prev, kesimpulan: updated };
+    });
+  };
+
+  const handleUpdateKetentuanTindakLanjut = (index: number, text: string) => {
+    setState((prev) => {
+      const current = [
+        ...(prev.config.ketentuanTindakLanjut || [
+          'Setiap PIC wajib mengunggah bukti dukung (evidence) pelaksanaan tugas pada dashboard sistem evaluasi.',
+          'Monitoring progres dilakukan secara berkala tiap hari Jumat pada akhir pekan berjalan.',
+          'Kendala teknis atau pergeseran target harus dilaporkan segera kepada pimpinan rapat untuk alternatif penyesuaian.',
+        ]),
+      ];
+      current[index] = text;
+      return {
+        ...prev,
+        config: {
+          ...prev.config,
+          ketentuanTindakLanjut: current,
+        },
+      };
     });
   };
 
@@ -119,10 +163,11 @@ export default function App() {
   };
 
   const handleReset = () => {
-    if (confirm('Kembalikan semua data ke setelan awal default? Data yang telah diubah akan hilang.')) {
-      localStorage.removeItem(STORAGE_KEY);
-      setState(defaultState);
-    }
+    localStorage.removeItem(STORAGE_KEY);
+    setState(defaultState);
+    setDocumentRevision((r) => r + 1);
+    setToastMessage('✓ Pengaturan dokumen telah dikembalikan ke format awal.');
+    setTimeout(() => setToastMessage(''), 3000);
   };
 
   const handleOpenQuickSignAttendee = (attendeeId: string) => {
@@ -131,11 +176,22 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-800 flex flex-col antialiased">
+    <div className="min-h-screen bg-slate-100 text-slate-800 flex flex-col antialiased relative">
+      {/* Toast Alert */}
+      {toastMessage && (
+        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50 bg-emerald-600 text-white px-5 py-2.5 rounded-full shadow-2xl text-xs font-bold flex items-center gap-2 border border-emerald-400 animate-bounce">
+          <Check className="w-4 h-4 text-emerald-200" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
       {/* Top Navbar */}
       <Navbar
         state={state}
-        onImportState={(newState) => setState(newState)}
+        onImportState={(newState) => {
+          setState(newState);
+          setDocumentRevision((r) => r + 1);
+        }}
         onResetState={handleReset}
         lastSavedTime={lastSavedTime}
       />
@@ -147,6 +203,7 @@ export default function App() {
           state={state}
           onUpdateState={setState}
           onUpdateConfig={handleUpdateConfig}
+          onApplyPreset={handleApplyPreset}
           onOpenKiosk={() => {
             setSelectedAttendeeForSign(undefined);
             setIsKioskOpen(true);
@@ -155,7 +212,7 @@ export default function App() {
         />
 
         {/* Right Side Live A4 Canvas Preview */}
-        <main className="flex-1 bg-slate-200/70 p-3 sm:p-6 md:p-8 overflow-y-auto flex flex-col items-center relative h-[calc(100vh-61px)]">
+        <main className="flex-1 bg-slate-200/70 p-2 sm:p-4 md:p-6 overflow-y-auto flex flex-col items-center relative h-[calc(100vh-61px)]">
           {/* Floating Controls Bar */}
           <PreviewControls
             zoom={zoom}
@@ -166,16 +223,20 @@ export default function App() {
             onToggleQrCode={() =>
               handleUpdateConfig('showQrCode', !state.config.showQrCode)
             }
+            onApplyPreset={handleApplyPreset}
+            activeUnitKerja={state.config.unitKerja}
           />
 
-          {/* Document Preview Pages */}
+          {/* Document Preview Pages - key forces clean remount on preset change */}
           <DocumentPreview
+            key={`doc-rev-${documentRevision}-${state.config.unitKerja}`}
             state={state}
             viewMode={viewMode}
             zoom={zoom}
             onUpdateConfig={handleUpdateConfig}
             onUpdateNotulensi={handleUpdateNotulensi}
             onUpdateKesimpulan={handleUpdateKesimpulan}
+            onUpdateKetentuanTindakLanjut={handleUpdateKetentuanTindakLanjut}
             onOpenQuickSign={handleOpenQuickSignAttendee}
           />
         </main>

@@ -10,6 +10,7 @@ interface DocumentPreviewProps {
   onUpdateConfig: (key: keyof AppState['config'], value: any) => void;
   onUpdateNotulensi: (index: number, text: string) => void;
   onUpdateKesimpulan: (index: number, text: string) => void;
+  onUpdateKetentuanTindakLanjut?: (index: number, text: string) => void;
   onOpenQuickSign?: (attendeeId: string) => void;
 }
 
@@ -20,6 +21,7 @@ export const DocumentPreview: React.FC<DocumentPreviewProps> = ({
   onUpdateConfig,
   onUpdateNotulensi,
   onUpdateKesimpulan,
+  onUpdateKetentuanTindakLanjut,
   onOpenQuickSign,
 }) => {
   const { config, notulensi, kesimpulan, actionPlan, attendees } = state;
@@ -459,15 +461,38 @@ export const DocumentPreview: React.FC<DocumentPreviewProps> = ({
             </tbody>
           </table>
 
-          {/* CATATAN TAMBAHAN / PETUNJUK MONITORING */}
-          <div className="p-3 bg-amber-50/60 border border-amber-200 rounded text-[8.5pt] font-sans mb-6">
-            <h4 className="font-bold text-amber-900 uppercase text-[8pt] tracking-wider mb-1">
-              Ketentuan Pelaporan Tindak Lanjut:
+          {/* CATATAN TAMBAHAN / KETENTUAN PELAPORAN TINDAK LANJUT */}
+          <div className="p-3 bg-amber-50/70 border border-amber-300 rounded text-[8.5pt] font-sans mb-6">
+            <h4
+              contentEditable
+              suppressContentEditableWarning
+              onBlur={(e) => onUpdateConfig('judulKetentuanTindakLanjut', e.currentTarget.innerText)}
+              className="font-bold text-amber-900 uppercase text-[8pt] tracking-wider mb-1"
+            >
+              {config.judulKetentuanTindakLanjut || 'Ketentuan Pelaporan & Monitoring Tindak Lanjut:'}
             </h4>
-            <ol className="list-decimal pl-4 space-y-0.5 text-amber-950">
-              <li>Setiap PIC wajib mengunggah bukti dukung (evidence) pelaksanaan tugas pada dashboard sistem evaluasi.</li>
-              <li>Monitoring progres dilakukan secara berkala tiap hari Jumat pada akhir pekan berjalan.</li>
-              <li>Kendala teknis atau pergeseran target harus dilaporkan segera kepada pimpinan rapat untuk solusi alternatif.</li>
+            <ol className="list-decimal pl-4 space-y-1 text-amber-950">
+              {(config.ketentuanTindakLanjut && config.ketentuanTindakLanjut.length > 0
+                ? config.ketentuanTindakLanjut
+                : [
+                    'Setiap PIC wajib mengunggah bukti dukung (evidence) pelaksanaan tugas pada dashboard sistem evaluasi.',
+                    'Monitoring progres dilakukan secara berkala tiap hari Jumat pada akhir pekan berjalan.',
+                    'Kendala teknis atau pergeseran target harus dilaporkan segera kepada pimpinan rapat untuk alternatif penyesuaian.',
+                  ]
+              ).map((rule, rIdx) => (
+                <li
+                  key={rIdx}
+                  contentEditable
+                  suppressContentEditableWarning
+                  onBlur={(e) =>
+                    onUpdateKetentuanTindakLanjut &&
+                    onUpdateKetentuanTindakLanjut(rIdx, e.currentTarget.innerText)
+                  }
+                  className="hover:bg-amber-100/60 transition rounded px-1"
+                >
+                  {rule}
+                </li>
+              ))}
             </ol>
           </div>
 

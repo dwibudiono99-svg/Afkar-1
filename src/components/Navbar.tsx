@@ -138,6 +138,23 @@ export const Navbar: React.FC<NavbarProps> = ({
             .join('')}
         </table>
 
+        <div style="background-color: #fef3c7; border: 1px solid #f59e0b; padding: 10px; margin: 15px 0;">
+          <h4 style="margin: 0 0 5px 0; color: #78350f; font-size: 10pt; text-transform: uppercase;">
+            ${state.config.judulKetentuanTindakLanjut || 'Ketentuan Pelaporan & Monitoring Tindak Lanjut:'}
+          </h4>
+          <ol style="margin: 0; padding-left: 20px; font-size: 9.5pt; color: #451a03;">
+            ${(
+              state.config.ketentuanTindakLanjut || [
+                'Setiap PIC wajib mengunggah bukti dukung (evidence) pelaksanaan tugas pada dashboard sistem evaluasi.',
+                'Monitoring progres dilakukan secara berkala tiap hari Jumat pada akhir pekan berjalan.',
+                'Kendala teknis atau pergeseran target harus dilaporkan segera kepada pimpinan rapat untuk alternatif penyesuaian.',
+              ]
+            )
+              .map((rule) => `<li>${rule}</li>`)
+              .join('')}
+          </ol>
+        </div>
+
         <br><br>
         <table class="no-border" style="width: 100%; text-align: center;">
           <tr>
